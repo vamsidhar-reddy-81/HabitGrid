@@ -866,3 +866,22 @@ body.dark-theme .toast{ background:var(--bg2); color:var(--t1); border-color:var
 }
 .theme-badge.to-dark{ background:#1A1D27;color:#F0F2FF;border-color:#353848; }
 .theme-badge.to-light{ background:var(--acc);color:#fff;border-color:var(--acc);box-shadow:0 2px 10px var(--acc-glow); }
+
+/* ══ COMPACT SIZING (calendar + desktop width) ══ */
+.cal-cell{aspect-ratio:auto;height:42px;font-size:12px;}
+.cal-cells{gap:4px;padding:10px;}
+.cal-wd{padding:6px 0;}
+.month-nav{padding:8px 12px;margin-bottom:10px;}
+.month-stats{margin-bottom:10px;}
+.ms-card{padding:10px;}
+.ms-val{font-size:18px;}
+
+/* Keep the app phone-sized and centered on wide screens */
+.dash-pad,.cal-pad,.an-pad,.set-pad,.today-list,.sec-title{
+  max-width:520px;margin-left:auto;margin-right:auto;
+}
+.today-list{padding-left:14px;padding-right:14px;}
+@media (min-width:700px){
+  .fab{right:calc(50% - 246px);}
+  .fab-menu{right:calc(50% - 246px);}
+}
