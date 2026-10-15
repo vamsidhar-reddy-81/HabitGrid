@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F8F9FF">
+<title>HabitGrid</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+
+<div class="app">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-inner">
+      <div class="logo-area">
+        <div class="logo-box">🎯</div>
+        <div class="logo-name">Habit<span>Grid</span></div>
+      </div>
+      <div class="header-date" id="headerDate">—</div>
+    </div>
+  </div>
+
+  <!-- CONTENT AREA -->
+  <div class="content" id="mainContent">
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dash">
+      <div class="dash-pad">
+        <!-- Hero ring -->
+        <div class="hero-card fade-up" id="heroCard">
+          <div class="hero-ring-wrap">
+            <svg class="hero-ring-svg" width="96" height="96" viewBox="0 0 96 96">
+              <circle class="hr-bg" cx="48" cy="48" r="36"/>
+              <circle class="hr-fill" id="heroRingFill" cx="48" cy="48" r="36"
+                stroke-dasharray="226.2" stroke-dashoffset="226.2"/>
+            </svg>
+            <div class="hero-ring-inner">
+              <div class="hero-pct" id="heroPct">0%</div>
+              <div class="hero-lbl">Today</div>
+            </div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-title" id="heroTitle">Good morning! 🌅</div>
+            <div id="heroRows"></div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-row fade-up" id="dashStats"></div>
+
+        <!-- Week strip -->
+        <div class="week-strip fade-up">
+          <div class="week-strip-title">This Week</div>
+          <div class="week-dots" id="weekDots"></div>
+        </div>
+      </div>
+
+      <!-- Today's habits -->
+      <div class="sec-title">Today's Habits</div>
+      <div class="today-list" id="todayList"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="view" id="view-history">
+      <div class="cal-pad">
+        <!-- Month nav -->
+        <div class="month-nav">
+          <button class="mn-btn" id="prevMonBtn">‹</button>
+          <div class="mn-label" id="monthLabel">—</div>
+          <button class="mn-btn" id="nextMonBtn">›</button>
+        </div>
+
+        <!-- Month stats -->
+        <div class="month-stats" id="monthStats"></div>
+
+        <!-- Calendar grid -->
+        <div class="cal-grid-card">
+          <div class="cal-wd-row">
+            <div class="cal-wd">Sun</div><div class="cal-wd">Mon</div>
+            <div class="cal-wd">Tue</div><div class="cal-wd">Wed</div>
+            <div class="cal-wd">Thu</div><div class="cal-wd">Fri</div>
+            <div class="cal-wd">Sat</div>
+          </div>
+          <div class="cal-cells" id="calCells"></div>
+        </div>
+
+        <!-- Day detail -->
+        <div class="day-detail" id="dayDetail" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ANALYSIS -->
+    <div class="view" id="view-analysis">
+      <div class="an-pad" id="analysisContent"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="view" id="view-settings">
+      <div class="set-pad">
+
+        <!-- User profile card -->
+        <div class="set-block">
+          <!-- Avatar row -->
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar" id="profileAvatar" onclick="openPicPicker()" title="Change profile photo">
+              <span id="profileAvatarEmoji">👤</span>
+              <img id="profileAvatarImg" src="" alt="" style="display:none;">
+              <div class="profile-avatar-badge">📷</div>
+            </div>
+            <div class="profile-avatar-hint">Tap to change photo</div>
+          </div>
+          <!-- Name row -->
+          <div class="set-row" style="cursor:default">
+            <div class="sr-info">
+              <div class="sr-label" id="settingsUserName">Loading...</div>
+              <div class="sr-sub" id="settingsUserAge" style="margin-top:2px;"></div>
+            </div>
+            <div class="sr-arrow" onclick="promptUserName()" style="cursor:pointer;color:var(--acc);font-size:14px;font-weight:700;">Edit</div>
+          </div>
+        </div>
+
+        <!-- Habits block -->
+        <div class="set-block">
+          <div class="set-row" onclick="openEditHabitSheet()">
+            <div class="sr-icon">✏️</div>
+            <div class="sr-info"><div class="sr-label">Edit Habits</div><div class="sr-sub">Add or remove your habits</div></div>
+            <div class="sr-arrow" style="color:var(--acc)">›</div>
+          </div>
+        </div>
+
+        <!-- Edit Habit Popup -->
+        <div class="eh-overlay" id="editHabitSheet" onclick="closeEditHabitSheet()">
+          <div class="eh-glass" onclick="event.stopPropagation()">
+            <div class="eh-title">Edit Habits</div>
+            <div class="eh-sub">What would you like to do?</div>
+            <div class="eh-options">
+              <button class="eh-opt" onclick="closeEditHabitSheet();closeFabMenu();switchTab('dash');setTimeout(openAdd,180)">
+                <div class="eh-opt-icon" style="background:rgba(22,163,74,.15);color:var(--green)">✅</div>
+                <div class="eh-opt-info">
+                  <div class="eh-opt-label">Add Habit</div>
+                  <div class="eh-opt-sub">Create a new habit to track</div>
+                </div>
+                <div class="eh-opt-arrow">›</div>
+              </button>
+              <div class="eh-sep"></div>
+              <button class="eh-opt" onclick="closeEditHabitSheet();closeFabMenu();switchTab('dash');setTimeout(enterRemoveMode,180)">
+                <div class="eh-opt-icon" style="background:rgba(220,38,38,.12);color:var(--red)">🗑️</div>
+                <div class="eh-opt-info">
+                  <div class="eh-opt-label" style="color:var(--red)">Remove Habit</div>
+                  <div class="eh-opt-sub">Delete a habit from your list</div>
+                </div>
+                <div class="eh-opt-arrow" style="color:var(--red)">›</div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export Sheet Overlay -->
+        <div class="eh-overlay" id="exportSheet" onclick="closeExportSheet()">
+          <div class="eh-glass" onclick="event.stopPropagation()">
+            <div class="eh-title">📤 Export Data</div>
+            <div class="eh-sub">Choose your export format</div>
+            <div class="eh-options">
+              <button class="eh-opt" onclick="closeExportSheet(); exportData()">
+                <div class="eh-opt-icon" style="background:rgba(22,163,74,.15);color:var(--green)">📊</div>
+                <div class="eh-opt-info">
+                  <div class="eh-opt-label">Excel</div>
+                  <div class="eh-opt-sub">Export all data as Excel workbook</div>
+                </div>
+                <div class="eh-opt-arrow">›</div>
+              </button>
+              <div class="eh-sep"></div>
+              <button class="eh-opt" onclick="closeExportSheet(); exportPDF()">
+                <div class="eh-opt-icon" style="background:rgba(79,110,247,.12);color:var(--acc)">📄</div>
+                <div class="eh-opt-info">
+                  <div class="eh-opt-label">PDF Tables</div>
+                  <div class="eh-opt-sub">Export all data as a PDF report</div>
+                </div>
+                <div class="eh-opt-arrow">›</div>
+              </button>
+              <div class="eh-sep"></div>
+              <button class="eh-opt" onclick="closeExportSheet(); exportJSON()">
+                <div class="eh-opt-icon" style="background:rgba(124,58,237,.12);color:var(--purple)">💾</div>
+                <div class="eh-opt-info">
+                  <div class="eh-opt-label">JSON Backup</div>
+                  <div class="eh-opt-sub">Backup file you can restore with Import</div>
+                </div>
+                <div class="eh-opt-arrow">›</div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export block -->
+        <div class="set-block">
+          <div class="set-row" onclick="openExportSheet()">
+            <div class="sr-icon">📤</div>
+            <div class="sr-info"><div class="sr-label">Export</div><div class="sr-sub">Save your data as Excel or PDF</div></div>
+            <div class="sr-arrow">›</div>
+          </div>
+          <div class="set-row" onclick="importClick()">
+            <div class="sr-icon">📥</div>
+            <div class="sr-info"><div class="sr-label">Import Data</div><div class="sr-sub">Restore from a JSON backup file</div></div>
+            <div class="sr-arrow">›</div>
+          </div>
+          <div class="set-row" onclick="openResetConfirm()">
+            <div class="sr-icon">⚠️</div>
+            <div class="sr-info"><div class="sr-label" style="color:var(--red)">Reset All Data</div><div class="sr-sub">Delete all habits and history</div></div>
+            <div class="sr-arrow" style="color:var(--red)">›</div>
+          </div>
+        </div>
+
+        <div class="set-block">
+          <div class="theme-toggle-row" onclick="toggleTheme()" id="themeToggleRow">
+            <div class="sr-icon" id="themeToggleIcon">🌙</div>
+            <div class="sr-info">
+              <div class="sr-label" id="themeToggleLabel">Dark Theme</div>
+              <div class="sr-sub" id="themeToggleSub">Switch to dark mode</div>
+            </div>
+            <div class="theme-badge to-dark" id="themeBadge">🌙 Dark</div>
+          </div>
+        </div>
+
+        <div class="set-block">
+          <div class="set-row" onclick="openHelpModal()">
+            <div class="sr-icon">❓</div>
+            <div class="sr-info"><div class="sr-label">Help &amp; Guide</div><div class="sr-sub">How to use HabitGrid + Rules</div></div>
+            <div class="sr-arrow" style="color:var(--acc)">›</div>
+          </div>
+          <div class="set-row" style="cursor:default">
+            <div class="sr-icon">💾</div>
+            <div class="sr-info"><div class="sr-label">Data Storage</div><div class="sr-sub">All data saved locally on your device.</div></div>
+          </div>
+        </div>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+
+<div class="pic-overlay" id="picOverlay" onclick="closePicPicker()">
+  <div class="pic-sheet" onclick="event.stopPropagation()">
+    <div class="pic-title">Profile Photo</div>
+    <div class="pic-sub">Choose how to set your photo</div>
+    <div class="pic-options">
+      <button class="pic-opt" onclick="triggerPicInput('camera')">
+        <div class="pic-opt-icon" style="background:rgba(79,110,247,.12);color:var(--acc)">📸</div>
+        <div class="pic-opt-info">
+          <div class="pic-opt-label">Take Photo</div>
+          <div class="pic-opt-sub">Open camera and take a new photo</div>
+        </div>
+      </button>
+      <button class="pic-opt" onclick="triggerPicInput('gallery')">
+        <div class="pic-opt-icon" style="background:rgba(22,163,74,.12);color:var(--green)">🖼️</div>
+        <div class="pic-opt-info">
+          <div class="pic-opt-label">Choose from Gallery</div>
+          <div class="pic-opt-sub">Pick an existing photo from your device</div>
+        </div>
+      </button>
+      <button class="pic-opt" id="removePicBtn" onclick="removeProfilePic()" style="display:none">
+        <div class="pic-opt-icon" style="background:rgba(220,38,38,.10);color:var(--red)">🗑️</div>
+        <div class="pic-opt-info">
+          <div class="pic-opt-label" style="color:var(--red)">Remove Photo</div>
+          <div class="pic-opt-sub">Go back to default avatar</div>
+        </div>
+      </button>
+    </div>
+    <button class="pic-cancel" onclick="closePicPicker()">Cancel</button>
+  </div>
+</div>
+
+<!-- hidden file inputs -->
+<input type="file" id="picInputCamera" accept="image/*" capture="user" style="display:none" onchange="handlePicFile(event)">
+<input type="file" id="picInputGallery" accept="image/*" style="display:none" onchange="handlePicFile(event)">
+
+<!-- CAMERA MODAL -->
+<div class="camera-overlay" id="cameraModal">
+  <div class="camera-title">📸 Take a Photo</div>
+  <div class="camera-viewport">
+    <video id="cameraVideo" autoplay playsinline muted></video>
+    <div class="camera-guide"></div>
+  </div>
+  <div class="camera-btns">
+    <button class="cam-btn-cancel" onclick="closeCameraModal()" title="Cancel">✕</button>
+    <button class="cam-btn-capture" onclick="capturePhoto()" title="Capture">📷</button>
+    <button class="cam-btn-flip" onclick="flipCamera()" title="Flip camera">🔄</button>
+  </div>
+</div>
+
+  <!-- BOTTOM NAV -->
+
+  <nav class="bottom-nav">
+    <button class="bnav-item active" data-tab="dash">
+      <div class="bnav-icon">🏠</div>
+      <span>Today</span>
+    </button>
+    <button class="bnav-item" data-tab="history">
+      <div class="bnav-icon">📅</div>
+      <span>History</span>
+    </button>
+    <button class="bnav-item" data-tab="analysis">
+      <div class="bnav-icon">📊</div>
+      <span>Stats</span>
+    </button>
+    <button class="bnav-item" data-tab="settings">
+      <div class="bnav-icon">⚙️</div>
+      <span>Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- FAB BACKDROP -->
+<div class="fab-backdrop" id="fabBackdrop"></div>
+
+<!-- FAB MENU -->
+<div class="fab-menu" id="fabMenu">
+  <div class="fab-menu-item" id="fabMenuAdd">
+    <span class="fmi-emoji">✅</span> Add Habit
+  </div>
+  <div class="fab-menu-item" id="fabMenuRemove" style="color:var(--red);border-color:rgba(220,38,38,.25);">
+    <span class="fmi-emoji">❌</span> Remove Habit
+  </div>
+</div>
+
+<!-- EDIT FAB -->
+<button class="fab" id="fabAdd" title="Edit Habits">
+  <span class="fab-edit-icon">✏️</span> Edit
+</button>
+
+<!-- ══ HELP MODAL ══ -->
+<div class="help-overlay" id="helpOverlay" onclick="closeHelpModal()">
+  <div class="help-glass" id="helpGlass" onclick="event.stopPropagation()">
+
+    <!-- Drag pill -->
+    <div class="hg-pill"></div>
+
+    <!-- Header -->
+    <div class="hg-header">
+      <div class="hg-icon-wrap">
+        <span class="hg-icon">❓</span>
+      </div>
+      <div class="hg-titles">
+        <div class="hg-title">HabitGrid Guide</div>
+        <div class="hg-sub">Everything you need to know</div>
+      </div>
+      <button class="hg-close" onclick="closeHelpModal()">✕</button>
+    </div>
+
+    <!-- Scrollable body -->
+    <div class="hg-body">
+
+      <!-- GETTING STARTED -->
+      <div class="hg-section">
+        <div class="hg-sec-label">🚀 Getting Started</div>
+        <div class="hg-card">
+          <div class="hg-step"><span class="hg-num">1</span><div><strong>Set your name</strong> — Go to Settings → Edit to personalise your greeting.</div></div>
+          <div class="hg-step"><span class="hg-num">2</span><div><strong>Add your first habit</strong> — Tap the ✏️ Edit button on the dashboard, then "Add Habit". Give it a name, icon &amp; colour.</div></div>
+          <div class="hg-step"><span class="hg-num">3</span><div><strong>Check in daily</strong> — Tap a habit card on the Today screen to mark it done. A confetti burst means you nailed it!</div></div>
+          <div class="hg-step"><span class="hg-num">4</span><div><strong>Track your progress</strong> — Visit the 📅 History and 📊 Stats tabs to see streaks, trends, and monthly heat maps.</div></div>
+        </div>
+      </div>
+
+      <!-- TABS GUIDE -->
+      <div class="hg-section">
+        <div class="hg-sec-label">📱 Navigating the App</div>
+        <div class="hg-card">
+          <div class="hg-item"><span class="hg-item-icon">🏠</span><div><strong>Today</strong> — Your daily habit checklist. Tap to check off, tap ✏️ Edit to add or remove habits.</div></div>
+          <div class="hg-divider"></div>
+          <div class="hg-item"><span class="hg-item-icon">📅</span><div><strong>History</strong> — Monthly calendar view. Tap any day to see exactly what was completed.</div></div>
+          <div class="hg-divider"></div>
+          <div class="hg-item"><span class="hg-item-icon">📊</span><div><strong>Stats</strong> — Completion rates, current streaks, best streaks, and 8-week trends per habit.</div></div>
+          <div class="hg-divider"></div>
+          <div class="hg-item"><span class="hg-item-icon">⚙️</span><div><strong>Settings</strong> — Profile, manage habits, export data, and this Help guide.</div></div>
+        </div>
+      </div>
+
+      <!-- TIPS -->
+      <div class="hg-section">
+        <div class="hg-sec-label">💡 Pro Tips</div>
+        <div class="hg-card">
+          <div class="hg-tip">🔥 <strong>Streaks</strong> reset if you miss a day — check in every evening to protect your chain.</div>
+          <div class="hg-divider"></div>
+          <div class="hg-tip">📆 <strong>Back-filling</strong> — Tap any past day in History to toggle habits for that date (up to 30 days back).</div>
+          <div class="hg-divider"></div>
+          <div class="hg-tip">📤 <strong>Export</strong> your data as Excel or PDF anytime from Settings before clearing your browser storage.</div>
+          <div class="hg-divider"></div>
+          <div class="hg-tip">🎯 <strong>Start small</strong> — Research shows 3–5 habits is the sweet spot for long-term success. Quality over quantity!</div>
+        </div>
+      </div>
+
+      <!-- RULES -->
+      <div class="hg-section">
+        <div class="hg-sec-label">📜 Rules &amp; Guidelines</div>
+        <div class="hg-card hg-rules">
+          <div class="hg-rule"><span class="hg-rule-dot green"></span><div>HabitGrid stores all data <strong>locally on your device</strong> — your data never leaves your browser.</div></div>
+          <div class="hg-divider"></div>
+          <div class="hg-rule"><span class="hg-rule-dot blue"></span><div>You may have up to <strong>20 active habits</strong> at a time for best performance and clarity.</div></div>
+          <div class="hg-divider"></div>
+          <div class="hg-rule"><span class="hg-rule-dot amber"></span><div>Completing a habit is <strong>honour-based</strong> — only mark it done when you genuinely did it.</div></div>
+          <div class="hg-divider"></div>
+          <div class="hg-rule"><span class="hg-rule-dot purple"></span><div><strong>Resetting data</strong> is permanent and cannot be undone. Always export a backup first.</div></div>
+          <div class="hg-divider"></div>
+          <div class="hg-rule"><span class="hg-rule-dot red"></span><div>Habit names must be <strong>42 characters or fewer</strong>. Keep them short and actionable.</div></div>
+          <div class="hg-divider"></div>
+          <div class="hg-rule"><span class="hg-rule-dot green"></span><div>HabitGrid is a <strong>personal productivity tool</strong>. Please use it responsibly and respect your own pace.</div></div>
+        </div>
+      </div>
+
+      <!-- VERSION -->
+      <div class="hg-version">HabitGrid v1.0 · Made with ❤️</div>
+
+    </div><!-- /hg-body -->
+  </div><!-- /help-glass -->
+</div><!-- /help-overlay -->
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-bg" id="habitModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">Add Habit</div>
+    <div class="fgrp">
+      <label class="flbl">Habit Name</label>
+      <input class="finput" id="hNameInput" placeholder="e.g. Morning Run" maxlength="42">
+    </div>
+    <div class="fgrp">
+      <label class="flbl">Icon</label>
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">Color</label>
+      <div class="cp-row" id="colorGrid"></div>
+    </div>
+    <div class="modal-acts">
+      <button class="mbtn-cancel" id="modalCancelBtn">Cancel</button>
+      <button class="mbtn-save" id="modalSaveBtn">Save →</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-bg" id="confirmModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="confirmTitle">Confirm</div>
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="modal-acts">
+      <button class="mbtn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="mbtn-danger" id="confirmOkBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- NAME PROMPT MODAL -->
+<div class="modal-bg" id="nameModal" style="align-items:center;padding:24px;">
+  <div class="modal" style="border-radius:20px;max-height:none;overflow:visible;">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👋 Welcome to HabitGrid!</div>
+    <p style="font-size:14px;color:var(--t3);margin-bottom:20px;line-height:1.6;">Tell us a bit about yourself — your profile will be personalised just for you.</p>
+    <div class="fgrp">
+      <label class="flbl">Your Name</label>
+      <input class="finput" id="nameInput" placeholder="e.g. Arjun" maxlength="30" inputmode="text" autocomplete="given-name" enterkeyhint="next">
+    </div>
+    <div class="fgrp">
+      <label class="flbl">Your Age</label>
+      <input class="finput" id="ageInput" placeholder="e.g. 24" maxlength="3" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" min="1" max="120" type="number">
+    </div>
+    <button class="mbtn-save" id="nameSaveBtn" style="width:100%;padding:14px;margin-top:16px;">Let's go →</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
